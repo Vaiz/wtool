@@ -1,7 +1,8 @@
 pub trait Command {
     fn create() -> Box<Self> where Self: Sized;
     fn name() -> &'static str where Self: Sized;
-    fn run(&self);
+    fn fill_subcommand<'a,'b>(&self, app : clap::App<'a,'b>) -> clap::App<'a,'b>;
+    fn run(&self, args : Option<&clap::ArgMatches>);
 }
 
 pub struct Dispatcher {
@@ -17,8 +18,14 @@ impl Dispatcher {
     pub fn add_cmd<T: Command + 'static>(&mut self) {
         assert!(self.m_commands.insert(T::name(), T::create()).is_none());
     }
-    pub fn run(&self, cmd : &str) {
+    pub fn fill_subcommands<'a,'b>(&self, mut app : clap::App<'a,'b>) -> clap::App<'a,'b> {
+        for (_, cmd) in &self.m_commands {
+            app = cmd.fill_subcommand(app);
+        }
+        app
+    }
+    pub fn run(&self, cmd : &str, args : Option<&clap::ArgMatches>) {
         let cmd = self.m_commands.get(cmd).unwrap();
-        cmd.run();
+        cmd.run(args);
     }
 }
