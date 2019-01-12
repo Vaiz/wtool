@@ -1,8 +1,10 @@
 extern crate encoding;
 
-use encoding::types::{/*RawDecoder,DecoderTrap,StringWriter,*/EncodingRef};
 use std::io::Read;
 use std::io::Write;
+
+use encoding::types::EncodingRef;
+
 use crate::common;
 
 pub struct Converter;
@@ -78,7 +80,7 @@ impl Converter {
         extension: Option<&str>,
         recursive: bool,
     ) {
-        let mut dirs = std::collections::VecDeque::<(String,String)>::new();
+        let mut dirs = std::collections::VecDeque::<(String, String)>::new();
         dirs.push_back((String::from(src_path), String::from(tgt_path)));
 
         /*while !dirs.is_empty() {
@@ -153,7 +155,7 @@ impl common::Command for Converter {
         let src_path = args.value_of("path").unwrap();
         let tgt_path =
             if args.is_present("target_path")
-                { args.value_of("target_path").unwrap() } else { src_path };
+            { args.value_of("target_path").unwrap() } else { src_path };
         let decoder = args.value_of("source_codepage").unwrap();
         let encoder = args.value_of("target_codepage").unwrap();
         let decoder_ref = encoding::label::encoding_from_whatwg_label(decoder).unwrap();
@@ -167,7 +169,8 @@ impl common::Command for Converter {
 
         println!("Source path: [{}], Target path: [{}], Decoder: [{}], Encoder: [{}]", src_path, tgt_path, decoder, encoder);
 
-        if is_folder { panic!("Folders not implemented");
+        if is_folder {
+            panic!("Folders not implemented");
         } else { Self::convert_file(src_path, tgt_path, decoder_ref, encoder_ref); }
     }
 }
