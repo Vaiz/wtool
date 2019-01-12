@@ -5,3 +5,4 @@ authors = ["Vaiz <vaizerd@gmail.com>"]
 
 [dependencies]
 clap = "2.32.0"
+encoding = "0.2.33"
