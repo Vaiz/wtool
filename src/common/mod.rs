@@ -15,8 +15,12 @@ impl Dispatcher {
             m_commands: std::collections::HashMap::new(),
         }
     }
-    pub fn add_cmd<T: Command + 'static>(&mut self) {
-        assert!(self.m_commands.insert(T::name(), T::create()).is_none());
+    pub fn add_cmd<T: Command + 'static>(&mut self) -> &mut Dispatcher {
+        let result = self.m_commands.insert(T::name(), T::create());
+        if result.is_some() {
+            println!("Failed to add command: {}", T::name());
+        }
+        self
     }
     pub fn fill_subcommands<'a, 'b>(&self, mut app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
         for (_, cmd) in &self.m_commands {
