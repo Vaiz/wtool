@@ -60,8 +60,7 @@ impl common::Command for ListDirCmd {
             //let filename = file.m_path.to_str().unwrap();
             if file.m_meta.is_dir() {
                 println!("[{}]", filename);
-            }
-            else {
+            } else {
                 println!("{}", filename);
             }
         }
@@ -91,16 +90,16 @@ impl FileInfo {
 struct FileExplorer {
     m_folders: std::collections::LinkedList<std::path::PathBuf>,
     m_files: std::collections::LinkedList<FileInfo>,
-    m_hide_folders : bool,
+    m_hide_folders: bool,
     m_recursive: bool,
 }
 
 impl FileExplorer {
-    fn create(path: &str, hide_folders : bool, recursive: bool) -> Result<FileExplorer, std::io::Error> {
+    fn create(path: &str, hide_folders: bool, recursive: bool) -> Result<FileExplorer, std::io::Error> {
         let mut explorer = FileExplorer {
             m_folders: std::collections::LinkedList::new(),
             m_files: std::collections::LinkedList::new(),
-            m_hide_folders : hide_folders,
+            m_hide_folders: hide_folders,
             m_recursive: recursive,
         };
 
