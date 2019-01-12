@@ -1,11 +1,14 @@
 extern crate clap;
 
 mod common;
+mod fs;
 mod convert_encoding;
 
 fn main() {
     let mut disp = common::Dispatcher::new();
-    disp.add_cmd::<convert_encoding::Converter>();
+    disp
+        .add_cmd::<fs::FileSystemDispatcher>()
+        .add_cmd::<convert_encoding::Converter>();
 
     let mut app =
         clap::App::new("wtool")
@@ -15,10 +18,12 @@ fn main() {
     app = disp.fill_subcommands(app);
 
     let matches = app.get_matches();
-
     let (cmd_name, args) = matches.subcommand();
 
-    //let cmd_name = matches.value_of("command_name").unwrap();
-    println!("{}", cmd_name);
+    if cmd_name.is_empty() {
+        print!("{}", matches.usage());
+        return;
+    }
+
     disp.run(cmd_name, args);
 }
