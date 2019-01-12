@@ -1,6 +1,6 @@
 extern crate encoding;
 
-use convert_encoding::encoding::types::{RawDecoder,DecoderTrap,StringWriter,EncodingRef};
+use convert_encoding::encoding::types::{/*RawDecoder,DecoderTrap,StringWriter,*/EncodingRef};
 use std::io::Read;
 use std::io::Write;
 use common;
@@ -46,7 +46,12 @@ impl Converter {
         }
         (None, encoding::all::ERROR)
     }*/
-    fn convert_file(src_path: &str, tgt_path: &str, decoder_ref : EncodingRef, encoder_ref: EncodingRef) {
+    fn convert_file(
+        src_path: &str,
+        tgt_path: &str,
+        decoder_ref: convert_encoding::encoding::types::EncodingRef,
+        encoder_ref: convert_encoding::encoding::types::EncodingRef,
+    ) {
         let file_data = Self::read_file(src_path);
         if file_data.is_empty() { return; }
 
@@ -65,6 +70,38 @@ impl Converter {
         println!("Converting complete. Source file: {}, Target file {}, Decoder: {}, Encoder: {}",
                  src_path, tgt_path, decoder_ref.name(), encoder_ref.name());
     }
+    fn convert_folder(
+        src_path: &str,
+        tgt_path: &str,
+        decoder_ref: convert_encoding::encoding::types::EncodingRef,
+        encoder_ref: convert_encoding::encoding::types::EncodingRef,
+        extension: Option<&str>,
+        recursive: bool,
+    ) {
+        let mut dirs = std::collections::VecDeque::<(String,String)>::new();
+        dirs.push_back((String::from(src_path), String::from(tgt_path)));
+
+        /*while !dirs.is_empty() {
+            let (src_path, tgt_path) = dirs.pop_front().unwrap();
+            let read_dir_res = std::fs::read_dir(src_path);
+            for entry in read_dir_res.into_iter() {
+                //let entry = entry?;
+                let path = entry.path();
+                if path.is_dir() {
+                    let file_name = entry.file_name().unwrap();
+                    let tgt_path = tgt_path + file_name;
+                    dirs.push_back(String::from(path), tgt_path);
+                } else if path.is_file() {
+                    if extension.is_some() {
+                        if path.extension != extension {
+                            continue;
+                        }
+                    }
+                    Self::convert_file(path.to_str().unwrap(), tgt_path + entry.file_name().unwrap(), decoder_ref, encoder_ref);
+                }
+            }
+        }*/
+    }
 }
 
 impl common::Command for Converter {
@@ -80,12 +117,12 @@ impl common::Command for Converter {
                 .arg(clap::Arg::with_name("path").required(true))
                 .arg(
                     clap::Arg::with_name("folder")
-                        .short("-f")
-                        .long("--folder"))
+                        .short("f")
+                        .long("folder"))
                 .arg(
                     clap::Arg::with_name("recursive")
-                        .short("-r")
-                        .long("--recursive"))
+                        .short("r")
+                        .long("recursive"))
                 .arg(
                     clap::Arg::with_name("source_codepage")
                         .long("src_codepage")
@@ -102,7 +139,12 @@ impl common::Command for Converter {
                     clap::Arg::with_name("target_path")
                         .long("tgt_path")
                         .takes_value(true)
-                        .help("result files path"));
+                        .help("result files path"))
+                .arg(
+                    clap::Arg::with_name("extension")
+                        .short("e")
+                        .long("extension")
+                        .takes_value(true));
 
         app.subcommand(sub_cmd)
     }
