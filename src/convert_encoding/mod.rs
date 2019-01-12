@@ -1,9 +1,9 @@
 extern crate encoding;
 
-use convert_encoding::encoding::types::{/*RawDecoder,DecoderTrap,StringWriter,*/EncodingRef};
+use encoding::types::{/*RawDecoder,DecoderTrap,StringWriter,*/EncodingRef};
 use std::io::Read;
 use std::io::Write;
-use common;
+use crate::common;
 
 pub struct Converter;
 
@@ -49,8 +49,8 @@ impl Converter {
     fn convert_file(
         src_path: &str,
         tgt_path: &str,
-        decoder_ref: convert_encoding::encoding::types::EncodingRef,
-        encoder_ref: convert_encoding::encoding::types::EncodingRef,
+        decoder_ref: EncodingRef,
+        encoder_ref: EncodingRef,
     ) {
         let file_data = Self::read_file(src_path);
         if file_data.is_empty() { return; }
@@ -73,8 +73,8 @@ impl Converter {
     fn convert_folder(
         src_path: &str,
         tgt_path: &str,
-        decoder_ref: convert_encoding::encoding::types::EncodingRef,
-        encoder_ref: convert_encoding::encoding::types::EncodingRef,
+        decoder_ref: EncodingRef,
+        encoder_ref: EncodingRef,
         extension: Option<&str>,
         recursive: bool,
     ) {
