@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 clap = "2.32.0"
 encoding = "0.2.33"
+dataplotlib = "0.1.3"
