@@ -7,6 +7,8 @@ use encoding::types::EncodingRef;
 
 use crate::common;
 
+mod detect;
+
 pub struct EncodingDispatcher {
     m_disp: common::Dispatcher,
 }
@@ -16,7 +18,9 @@ impl EncodingDispatcher {
         let mut disp = EncodingDispatcher {
             m_disp: common::Dispatcher::new()
         };
-        disp.m_disp.add_cmd::<ConvertCmd>();
+        disp.m_disp
+            .add_cmd::<ConvertCmd>()
+            .add_cmd::<detect::DetectEncodingCmd>();
         disp
     }
 }
