@@ -7,15 +7,45 @@ use encoding::types::EncodingRef;
 
 use crate::common;
 
-pub struct Converter;
+pub struct EncodingDispatcher {
+    m_disp: common::Dispatcher,
+}
 
-impl Converter {
-    fn new() -> Converter {
-        Converter {}
+impl EncodingDispatcher {
+    fn new() -> EncodingDispatcher {
+        let mut disp = EncodingDispatcher {
+            m_disp: common::Dispatcher::new()
+        };
+        disp.m_disp.add_cmd::<ConvertCmd>();
+        disp
     }
 }
 
-impl Converter {
+impl common::Command for EncodingDispatcher {
+    fn create() -> Box<EncodingDispatcher> {
+        Box::<>::new(EncodingDispatcher::new())
+    }
+    fn name() -> &'static str { "encoding" }
+    fn fill_subcommand<'a, 'b>(&self, app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
+        let fs_sub_cmd = clap::App::new(Self::name());
+        let fs_sub_cmd = self.m_disp.fill_subcommands(fs_sub_cmd);
+        app.subcommand(fs_sub_cmd)
+    }
+    fn run(&self, args: Option<&clap::ArgMatches>) {
+        let (cmd_name, args) = args.unwrap().subcommand();
+        self.m_disp.run(cmd_name, args);
+    }
+}
+
+pub struct ConvertCmd;
+
+impl ConvertCmd {
+    fn new() -> ConvertCmd {
+        ConvertCmd {}
+    }
+}
+
+impl ConvertCmd {
     fn read_file(path: &str) -> Vec<u8> {
         let mut file = std::fs::OpenOptions::new()
             .read(true)
@@ -106,12 +136,12 @@ impl Converter {
     }
 }
 
-impl common::Command for Converter {
-    fn create() -> Box<Converter> {
-        Box::<Converter>::new(Converter::new())
+impl common::Command for ConvertCmd {
+    fn create() -> Box<ConvertCmd> {
+        Box::<ConvertCmd>::new(ConvertCmd::new())
     }
     fn name() -> &'static str {
-        "convert_encoding"
+        "convert"
     }
     fn fill_subcommand<'a, 'b>(&self, app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
         let sub_cmd =

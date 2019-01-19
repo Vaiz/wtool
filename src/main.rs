@@ -2,13 +2,13 @@ extern crate clap;
 
 mod common;
 mod fs;
-mod convert_encoding;
+mod encoding;
 
 fn main() {
     let mut disp = common::Dispatcher::new();
     disp
         .add_cmd::<fs::FileSystemDispatcher>()
-        .add_cmd::<convert_encoding::Converter>();
+        .add_cmd::<encoding::EncodingDispatcher>();
 
     let mut app =
         clap::App::new("wtool")
