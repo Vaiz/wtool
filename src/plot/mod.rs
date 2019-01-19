@@ -1,5 +1,3 @@
-use std::fmt::Write;
-
 extern crate dataplotlib;
 
 use dataplotlib::plotbuilder::PlotBuilder2D;
@@ -7,6 +5,7 @@ use dataplotlib::plotter::Plotter;
 use dataplotlib::util::{linspace, zip2};
 
 use crate::common;
+
 
 pub struct PlotDispatcher {
     m_disp: common::Dispatcher,
@@ -76,8 +75,8 @@ impl common::Command for ColoredxyExampleCmd {
 struct CubicFunctionCmd;
 
 impl CubicFunctionCmd {
-    fn calc(x : f64) -> f64 {
-        x*x*x
+    fn calc(x: f64) -> f64 {
+        x * x * x
     }
 }
 
@@ -119,7 +118,7 @@ impl common::Command for CubicFunctionCmd {
 
         let mut i = x_min + step;
         while i - step < x_max {
-            let y_i =  CubicFunctionCmd::calc(i);
+            let y_i = CubicFunctionCmd::calc(i);
 
             if y_min > y_i { y_min = y_i; }
             if y_max < y_i { y_max = y_i; }
