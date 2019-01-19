@@ -47,9 +47,6 @@ impl ConvertCmd {
     fn new() -> ConvertCmd {
         ConvertCmd {}
     }
-}
-
-impl ConvertCmd {
     fn read_file(path: &str) -> Vec<u8> {
         let mut file = std::fs::OpenOptions::new()
             .read(true)
