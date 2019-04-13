@@ -41,12 +41,19 @@ impl common::Command for ListAllConnectionCmd {
     fn create() -> Box<Self> { Box::<_>::new(Self {}) }
     fn name() -> &'static str { "list_all_con" }
     fn fill_subcommand<'a, 'b>(&self, app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
-        let sub_cmd = clap::App::new(Self::name());
+        let sub_cmd =
+            clap::App::new(Self::name())
+                .arg(clap::Arg::with_name("ipv4").long("ipv4"))
+                .arg(clap::Arg::with_name("ipv6").long("ipv6"))
+                .arg(clap::Arg::with_name("tcp").long("tcp"))
+                .arg(clap::Arg::with_name("upd").long("udp"));
         app.subcommand(sub_cmd)
     }
     fn run(&self, args: Option<&clap::ArgMatches>) {
-        let af_flags = AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
-        let proto_flags = ProtocolFlags::TCP | ProtocolFlags::UDP;
+        let args = args.unwrap();
+
+        let af_flags = ListAllConnectionCmd::get_ip_ver(args);
+        let proto_flags = ListAllConnectionCmd::get_ip_prot(args);
         let sockets_info = get_sockets_info(af_flags, proto_flags).unwrap();
         for si in sockets_info {
             match si.protocol_socket_info {
@@ -65,5 +72,30 @@ impl common::Command for ListAllConnectionCmd {
                 ),
             }
         }
+    }
+}
+
+impl ListAllConnectionCmd {
+    fn get_ip_ver(args: &clap::ArgMatches) -> AddressFamilyFlags {
+        if !args.is_present("tcp") && !args.is_present("ipv6") {
+            return AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
+        }
+        if args.is_present("ipv4") && args.is_present("ipv6") {
+            return AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
+        }
+
+        if args.is_present("ipv4") { return AddressFamilyFlags::IPV4; }
+        return AddressFamilyFlags::IPV6;
+    }
+    fn get_ip_prot(args: &clap::ArgMatches) -> ProtocolFlags {
+        if !args.is_present("tcp") && !args.is_present("udp") {
+            return ProtocolFlags::TCP | ProtocolFlags::UDP;
+        }
+        if args.is_present("tcp") && args.is_present("udp") {
+            return ProtocolFlags::TCP | ProtocolFlags::UDP;
+        }
+
+        if args.is_present("tcp") { return ProtocolFlags::TCP; }
+        return ProtocolFlags::UDP;
     }
 }
