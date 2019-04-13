@@ -46,7 +46,8 @@ impl common::Command for ListAllConnectionCmd {
                 .arg(clap::Arg::with_name("ipv4").long("ipv4"))
                 .arg(clap::Arg::with_name("ipv6").long("ipv6"))
                 .arg(clap::Arg::with_name("tcp").long("tcp"))
-                .arg(clap::Arg::with_name("upd").long("udp"));
+                .arg(clap::Arg::with_name("upd").long("udp"))
+                .arg(clap::Arg::with_name("port").long("port").takes_value(true));
         app.subcommand(sub_cmd)
     }
     fn run(&self, args: Option<&clap::ArgMatches>) {
@@ -54,8 +55,18 @@ impl common::Command for ListAllConnectionCmd {
 
         let af_flags = ListAllConnectionCmd::get_ip_ver(args);
         let proto_flags = ListAllConnectionCmd::get_ip_prot(args);
+        let port =
+            if args.is_present("port") {
+                Some(args.value_of("port").unwrap().parse::<u16>().unwrap())
+            } else {
+                None
+            };
+
+
         let sockets_info = get_sockets_info(af_flags, proto_flags).unwrap();
         for si in sockets_info {
+            if !ListAllConnectionCmd::is_port_match(&si, &port) { continue; }
+
             match si.protocol_socket_info {
                 ProtocolSocketInfo::Tcp(tcp_si) => println!(
                     "TCP {}:{} -> {}:{} {:?} - {}",
@@ -97,5 +108,17 @@ impl ListAllConnectionCmd {
 
         if args.is_present("tcp") { return ProtocolFlags::TCP; }
         return ProtocolFlags::UDP;
+    }
+    fn is_port_match(si: &SocketInfo, port: &Option<u16>) -> bool {
+        if port.is_none() { return true; }
+        let port = port.unwrap();
+        match &si.protocol_socket_info {
+            ProtocolSocketInfo::Tcp(tcp_si) => {
+                return tcp_si.local_port == port || tcp_si.remote_port == port;
+            },
+            ProtocolSocketInfo::Udp(udp_si) => {
+                return udp_si.local_port == port;
+            }
+        }
     }
 }
