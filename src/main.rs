@@ -4,13 +4,15 @@ mod common;
 mod fs;
 mod encoding;
 mod plot;
+mod net;
 
 fn main() {
     let mut disp = common::Dispatcher::new();
     disp
         .add_cmd::<fs::FileSystemDispatcher>()
         .add_cmd::<encoding::EncodingDispatcher>()
-        .add_cmd::<plot::PlotDispatcher>();
+        .add_cmd::<plot::PlotDispatcher>()
+        .add_cmd::<net::NetDispatcher>();
 
     let mut app =
         clap::App::new("wtool")
