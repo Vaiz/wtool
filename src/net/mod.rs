@@ -1,4 +1,5 @@
 extern crate netstat;
+
 use netstat::*;
 
 use crate::common;
@@ -17,6 +18,7 @@ impl NetDispatcher {
         disp
     }
 }
+
 impl common::Command for NetDispatcher {
     fn create() -> Box<Self> {
         Box::<>::new(Self::new())

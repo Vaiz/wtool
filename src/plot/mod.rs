@@ -6,7 +6,6 @@ use dataplotlib::util::{linspace, zip2};
 
 use crate::common;
 
-
 pub struct PlotDispatcher {
     m_disp: common::Dispatcher,
 }
