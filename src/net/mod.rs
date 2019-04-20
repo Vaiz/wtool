@@ -88,7 +88,7 @@ impl common::Command for ListAllConnectionCmd {
 
 impl ListAllConnectionCmd {
     fn get_ip_ver(args: &clap::ArgMatches) -> AddressFamilyFlags {
-        if !args.is_present("tcp") && !args.is_present("ipv6") {
+        if !args.is_present("ipv4") && !args.is_present("ipv6") {
             return AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
         }
         if args.is_present("ipv4") && args.is_present("ipv6") {
