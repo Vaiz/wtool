@@ -21,20 +21,60 @@ fn read_file(path: &str) -> std::io::Result<Vec<u8>> {
     if result.is_ok() { Ok(buf) } else { Err(result.err().unwrap()) }
 }
 
-fn is_same_encoding(data: &[u8], e: EncodingRef) -> bool {
+pub enum EBomPolicy {
+    EIgnore,
+    EWithBom,
+    EWithoutBom,
+}
+
+fn get_bom_mark(e: &EncodingRef) -> Vec<u8> {
+    match e.name() {
+        "utf-8" => { vec![0xEF, 0xBB, 0xBF] }
+        "utf-16be" => { vec![0xFE, 0xFF] }
+        "utf-16le" => { vec![0xFF, 0xFE] }
+        _ => { vec![] }
+    }
+}
+
+fn is_same_encoding(data: &[u8], e: &EncodingRef, bom_policy: &EBomPolicy) -> bool {
+    match bom_policy {
+        EBomPolicy::EIgnore => {}
+        EBomPolicy::EWithBom => {
+            let bom = get_bom_mark(e);
+            if data.len() < bom.len() { return false; }
+            for i in 0..bom.len() {
+                if data[i] != bom[i] { return false; }
+            }
+        }
+        EBomPolicy::EWithoutBom => {
+            let bom = get_bom_mark(e);
+            if data.len() < bom.len() { return false; }
+            let mut has_bom = true;
+            for i in 0..bom.len() {
+                if data[i] != bom[i] {
+                    has_bom = false;
+                    break;
+                }
+            }
+            if has_bom {
+                return false;
+            }
+        }
+    }
+
     let trap = encoding::types::DecoderTrap::Strict;
     let (result, _) =
-        encoding::types::decode(&data, trap, e);
+        encoding::types::decode(&data, trap, *e);
     return result.is_ok();
 }
 
-pub fn is_file_has_same_encoding(filepath: &str, e: EncodingRef) -> std::io::Result<bool> {
+pub fn is_file_has_same_encoding(filepath: &str, e: &EncodingRef, bom_policy: &EBomPolicy) -> std::io::Result<bool> {
     let file_content = read_file(filepath);
     if file_content.is_err() {
         return Err(file_content.err().unwrap());
     }
     let file_content = file_content.unwrap();
-    Ok(is_same_encoding(&file_content[..], e))
+    Ok(is_same_encoding(&file_content[..], e, bom_policy))
 }
 
 

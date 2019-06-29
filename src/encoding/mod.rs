@@ -6,6 +6,7 @@ use std::io::Write;
 use encoding::types::EncodingRef;
 
 use crate::common;
+use crate::encoding::detect::EBomPolicy;
 
 mod detect;
 
@@ -255,29 +256,83 @@ impl common::Command for ListFiles {
                         .short("s")
                         .takes_value(false)
                         .required(false))
+                .arg(
+                    clap::Arg::with_name("with_bom")
+                        .long("with_bom")
+                        .short("w")
+                        .takes_value(false)
+                        .required(false))
+                .arg(
+                    clap::Arg::with_name("without_bom")
+                        .long("without_bom")
+                        .takes_value(false)
+                        .required(false))
         )
     }
     fn run(&self, args: Option<&clap::ArgMatches>) {
+        let mut cfg = ListFilesConfig::new();
+
         let args = args.unwrap();
-        let folder = args.value_of("folder").unwrap();
-        let decoder = args.value_of("encoding").unwrap();
-        let decoder = encoding::label::encoding_from_whatwg_label(decoder).unwrap();
-        let recursive = args.is_present("recursive");
-        let list_skipped = args.is_present("list_skipped");
+        cfg.set_folder(args.value_of("folder").unwrap());
+        cfg.set_decoder(args.value_of("encoding").unwrap());
+        if args.is_present("with_bom") { cfg.set_bom_policy(EBomPolicy::EWithBom); } else if args.is_present("without_bom") { cfg.set_bom_policy(EBomPolicy::EWithoutBom); }
+
+
+        cfg.set_recursive(args.is_present("recursive"));
+        cfg.set_list_skipped(args.is_present("list_skipped"));
         let mask = args.value_of("regex");
-        ListFiles::run(folder, recursive, list_skipped, decoder, mask);
+        if mask.is_some() { cfg.set_regex(mask.unwrap()); }
+
+        ListFiles::run(&cfg);
     }
 }
 
-struct ListFilesFilter {
+struct ListFilesConfig {
+    folder: String,
+    decoder_ref: encoding::EncodingRef,
+    bom_policy: EBomPolicy,
     reg: regex::Regex,
+    recursive: bool,
+    list_skipped: bool,
 }
 
-impl ListFilesFilter {
-    fn new(mask: Option<&str>) -> Self {
+impl ListFilesConfig {
+    fn new() -> Self {
         Self {
-            reg: regex::Regex::new(mask.unwrap_or(".*")).unwrap(),
+            folder: Default::default(),
+            decoder_ref: encoding::all::UTF_8 as encoding::EncodingRef,
+            bom_policy: EBomPolicy::EIgnore,
+            reg: regex::Regex::new(".*").unwrap(),
+            recursive: false,
+            list_skipped: false,
         }
+    }
+    fn set_folder(&mut self, folder: &str) {
+        self.folder = String::from(folder);
+    }
+    fn set_decoder(&mut self, decoder: &str) {
+        let decoder_ref = encoding::label::encoding_from_whatwg_label(decoder);
+        if decoder_ref.is_none() {
+            eprintln!("Failed to parse encoding param {}", decoder);
+            return;
+        }
+        self.decoder_ref = decoder_ref.unwrap();
+    }
+    fn set_regex(&mut self, mask: &str) {
+        self.reg = regex::Regex::new(mask).unwrap();
+    }
+    fn set_bom_policy(&mut self, bom_policy: EBomPolicy) {
+        self.bom_policy = bom_policy;
+    }
+    fn set_recursive(&mut self, recursive: bool) {
+        self.recursive = recursive;
+    }
+    fn set_list_skipped(&mut self, list_skipped: bool) {
+        self.list_skipped = list_skipped;
+    }
+    fn create_walker(&self) -> walkdir::WalkDir {
+        let walker = walkdir::WalkDir::new(self.folder.clone()).follow_links(false);
+        if !self.recursive { walker.max_depth(1) } else { walker }
     }
     fn filter(&self, entry: &walkdir::DirEntry) -> bool {
         let meta = std::fs::metadata(entry.path());
@@ -292,13 +347,14 @@ impl ListFilesFilter {
 
         return false;
     }
+    fn check_encoding(&self, filepath: &str) -> std::io::Result<bool> {
+        detect::is_file_has_same_encoding(filepath, &self.decoder_ref, &self.bom_policy)
+    }
 }
 
 impl ListFiles {
-    fn run(folder: &str, recursive: bool, list_skipped: bool, e: EncodingRef, mask: Option<&str>) {
-        let filter = ListFilesFilter::new(mask);
-        let walker = walkdir::WalkDir::new(folder).follow_links(false);
-        let walker = if !recursive { walker.max_depth(1) } else { walker };
+    fn run(cfg: &ListFilesConfig) {
+        let walker = cfg.create_walker();
 
         for entry in walker {
             if entry.is_err() {
@@ -307,11 +363,11 @@ impl ListFiles {
             }
 
             let entry = entry.unwrap();
-            if filter.filter(&entry) { continue; }
+            if cfg.filter(&entry) { continue; }
 
             let filepath = entry.file_name().to_str().unwrap();
 
-            let result = detect::is_file_has_same_encoding(entry.path().to_str().unwrap(), e);
+            let result = cfg.check_encoding(entry.path().to_str().unwrap());
             if result.is_err() {
                 eprintln!("Failed to read file {}. Error: {}", filepath, result.err().unwrap());
                 continue;
@@ -319,7 +375,7 @@ impl ListFiles {
 
             if result.unwrap() {
                 println!("{}", entry.path().display());
-            } else if list_skipped {
+            } else if cfg.list_skipped {
                 println!("skipped file: {}", entry.path().display());
             }
         }
