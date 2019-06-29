@@ -45,9 +45,6 @@ impl common::Command for EncodingDispatcher {
 pub struct ConvertCmd;
 
 impl ConvertCmd {
-    fn new() -> ConvertCmd {
-        ConvertCmd {}
-    }
     fn read_file(path: &str) -> Vec<u8> {
         let mut file = std::fs::OpenOptions::new()
             .read(true)
@@ -139,8 +136,8 @@ impl ConvertCmd {
 }
 
 impl common::Command for ConvertCmd {
-    fn create() -> Box<ConvertCmd> {
-        Box::<ConvertCmd>::new(ConvertCmd::new())
+    fn create() -> Box<Self> {
+        Box::<Self>::new(Self{})
     }
     fn name() -> &'static str {
         "convert"
