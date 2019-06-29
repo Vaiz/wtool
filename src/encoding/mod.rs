@@ -21,7 +21,8 @@ impl EncodingDispatcher {
         disp.m_disp
             .add_cmd::<ConvertCmd>()
             .add_cmd::<detect::DetectEncodingCmd>()
-            .add_cmd::<ListEncodings>();
+            .add_cmd::<ListEncodings>()
+            .add_cmd::<ListFiles>();
         disp
     }
 }
@@ -219,6 +220,108 @@ impl common::Command for ListEncodings {
         let encodings = encoding::all::encodings();
         for e in encodings {
             println!("{}", e.name());
+        }
+    }
+}
+
+
+pub struct ListFiles;
+
+impl common::Command for ListFiles {
+    fn create() -> Box<Self> { Box::<Self>::new(Self {}) }
+    fn name() -> &'static str {
+        "list_files"
+    }
+    fn fill_subcommand<'a, 'b>(&self, app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
+        app.subcommand(
+            clap::App::new(Self::name())
+                .arg(clap::Arg::with_name("folder").required(true))
+                .arg(clap::Arg::with_name("encoding").required(true))
+                .arg(
+                    clap::Arg::with_name("regex")
+                        .long("regex")
+                        .required(false)
+                        .takes_value(true)
+                        .help("*.rs mask: (.*)+(.\\.rs)$"))
+                .arg(
+                    clap::Arg::with_name("recursive")
+                        .long("recursive")
+                        .short("r")
+                        .takes_value(false)
+                        .required(false))
+                .arg(
+                    clap::Arg::with_name("list_skipped")
+                        .long("list_skipped")
+                        .short("s")
+                        .takes_value(false)
+                        .required(false))
+        )
+    }
+    fn run(&self, args: Option<&clap::ArgMatches>) {
+        let args = args.unwrap();
+        let folder = args.value_of("folder").unwrap();
+        let decoder = args.value_of("encoding").unwrap();
+        let decoder = encoding::label::encoding_from_whatwg_label(decoder).unwrap();
+        let recursive = args.is_present("recursive");
+        let list_skipped = args.is_present("list_skipped");
+        let mask = args.value_of("regex");
+        ListFiles::run(folder, recursive, list_skipped, decoder, mask);
+    }
+}
+
+struct ListFilesFilter {
+    reg: regex::Regex,
+}
+
+impl ListFilesFilter {
+    fn new(mask: Option<&str>) -> Self {
+        Self {
+            reg: regex::Regex::new(mask.unwrap_or(".*")).unwrap(),
+        }
+    }
+    fn filter(&self, entry: &walkdir::DirEntry) -> bool {
+        let meta = std::fs::metadata(entry.path());
+        if meta.is_err() {
+            eprintln!("{}", meta.err().unwrap());
+            return true;
+        }
+
+        let meta = meta.unwrap();
+        if meta.is_dir() { return true; }
+        if !self.reg.is_match(entry.path().to_str().unwrap()) { return true; }
+
+        return false;
+    }
+}
+
+impl ListFiles {
+    fn run(folder: &str, recursive: bool, list_skipped: bool, e: EncodingRef, mask: Option<&str>) {
+        let filter = ListFilesFilter::new(mask);
+        let walker = walkdir::WalkDir::new(folder).follow_links(false);
+        let walker = if !recursive { walker.max_depth(1) } else { walker };
+
+        for entry in walker {
+            if entry.is_err() {
+                eprintln!("{}", entry.err().unwrap());
+                continue;
+            }
+
+            let entry = entry.unwrap();
+            if filter.filter(&entry) { continue; }
+
+            let filepath = entry.file_name().to_str().unwrap();
+
+            let result = detect::is_file_has_same_encoding(entry.path().to_str().unwrap(), e);
+            if result.is_err() {
+                eprintln!("Failed to read file {}. Error: {}", filepath, result.err().unwrap());
+                continue;
+            }
+
+            if result.unwrap() {
+                println!("{}", entry.path().display());
+            } else if list_skipped {
+                println!("skipped file: {}", entry.path().display());
+            }
         }
     }
 }

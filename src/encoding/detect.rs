@@ -2,20 +2,43 @@ use std::io::Read;
 
 use crate::common;
 
-pub struct DetectEncodingCmd;
+use super::encoding::EncodingRef;
 
-impl DetectEncodingCmd {
-    fn read_file(path: &str) -> Vec<u8> {
-        let mut file = std::fs::OpenOptions::new()
-            .read(true)
-            .write(false)
-            .create(false)
-            .open(path).unwrap();
-        let mut buf = Vec::<u8>::new();
-        file.read_to_end(&mut buf);
-        buf
+fn read_file(path: &str) -> std::io::Result<Vec<u8>> {
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(false)
+        .create(false)
+        .open(path);
+
+    if file.is_err() {
+        return Err(file.err().unwrap());
     }
+
+    let mut file = file.unwrap();
+    let mut buf = Vec::<u8>::new();
+    let result = file.read_to_end(&mut buf);
+    if result.is_ok() { Ok(buf) } else { Err(result.err().unwrap()) }
 }
+
+fn is_same_encoding(data: &[u8], e: EncodingRef) -> bool {
+    let trap = encoding::types::DecoderTrap::Strict;
+    let (result, _) =
+        encoding::types::decode(&data, trap, e);
+    return result.is_ok();
+}
+
+pub fn is_file_has_same_encoding(filepath: &str, e: EncodingRef) -> std::io::Result<bool> {
+    let file_content = read_file(filepath);
+    if file_content.is_err() {
+        return Err(file_content.err().unwrap());
+    }
+    let file_content = file_content.unwrap();
+    Ok(is_same_encoding(&file_content[..], e))
+}
+
+
+pub struct DetectEncodingCmd;
 
 impl common::Command for DetectEncodingCmd {
     fn create() -> Box<DetectEncodingCmd> { Box::<_>::new(DetectEncodingCmd {}) }
@@ -31,9 +54,13 @@ impl common::Command for DetectEncodingCmd {
     {
         let args = args.unwrap();
         let filepath = args.value_of("filepath").unwrap();
-        let file_data = DetectEncodingCmd::read_file(filepath);
+        let result = read_file(filepath);
+        if result.is_err() {
+            eprintln!("Failed to read file {}. Error: {}", filepath, result.err().unwrap());
+            return;
+        }
 
-
+        let file_data = result.unwrap();
         let encodings = encoding::all::encodings();
         let trap = encoding::types::DecoderTrap::Strict;
         for en in encodings {
