@@ -20,7 +20,8 @@ impl EncodingDispatcher {
         };
         disp.m_disp
             .add_cmd::<ConvertCmd>()
-            .add_cmd::<detect::DetectEncodingCmd>();
+            .add_cmd::<detect::DetectEncodingCmd>()
+            .add_cmd::<ListEncodings>();
         disp
     }
 }
@@ -203,5 +204,24 @@ impl common::Command for ConvertCmd {
         if is_folder {
             panic!("Folders not implemented");
         } else { Self::convert_file(src_path, tgt_path, decoder_ref, encoder_ref); }
+    }
+}
+
+
+pub struct ListEncodings;
+
+impl common::Command for ListEncodings {
+    fn create() -> Box<Self> { Box::<Self>::new(Self{}) }
+    fn name() -> &'static str {
+        "encodings"
+    }
+    fn fill_subcommand<'a, 'b>(&self, app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
+        app.subcommand(clap::App::new(Self::name()))
+    }
+    fn run(&self, args: Option<&clap::ArgMatches>) {
+        let encodings = encoding::all::encodings();
+        for e in encodings {
+            println!("{}", e.name());
+        }
     }
 }
