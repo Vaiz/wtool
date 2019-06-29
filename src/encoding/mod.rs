@@ -137,7 +137,7 @@ impl ConvertCmd {
 
 impl common::Command for ConvertCmd {
     fn create() -> Box<Self> {
-        Box::<Self>::new(Self{})
+        Box::<Self>::new(Self {})
     }
     fn name() -> &'static str {
         "convert"
@@ -208,7 +208,7 @@ impl common::Command for ConvertCmd {
 pub struct ListEncodings;
 
 impl common::Command for ListEncodings {
-    fn create() -> Box<Self> { Box::<Self>::new(Self{}) }
+    fn create() -> Box<Self> { Box::<Self>::new(Self {}) }
     fn name() -> &'static str {
         "encodings"
     }

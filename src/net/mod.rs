@@ -115,7 +115,7 @@ impl ListAllConnectionCmd {
         match &si.protocol_socket_info {
             ProtocolSocketInfo::Tcp(tcp_si) => {
                 return tcp_si.local_port == port || tcp_si.remote_port == port;
-            },
+            }
             ProtocolSocketInfo::Udp(udp_si) => {
                 return udp_si.local_port == port;
             }
