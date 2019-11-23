@@ -29,5 +29,9 @@ fn main() {
         return;
     }
 
-    disp.run(cmd_name, args);
+    let result = disp.run(cmd_name, args);
+    if result.is_err() {
+        eprintln!("Command '{}' finished with error", cmd_name);
+        eprintln!("{}", result.err().unwrap());
+    }
 }

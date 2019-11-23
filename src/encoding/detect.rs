@@ -83,24 +83,16 @@ pub struct DetectEncodingCmd;
 impl common::Command for DetectEncodingCmd {
     fn create() -> Box<DetectEncodingCmd> { Box::<_>::new(DetectEncodingCmd {}) }
     fn name() -> &'static str { "detect" }
-    fn fill_subcommand<'a, 'b>(&self, app: clap::App<'a, 'b>) -> clap::App<'a, 'b>
-    {
+    fn fill_subcommand<'a, 'b>(&self, app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
         let sub_cmd =
             clap::App::new(Self::name())
                 .arg(clap::Arg::with_name("filepath").required(true));
         app.subcommand(sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>)
-    {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let args = args.unwrap();
         let filepath = args.value_of("filepath").unwrap();
-        let result = read_file(filepath);
-        if result.is_err() {
-            eprintln!("Failed to read file {}. Error: {}", filepath, result.err().unwrap());
-            return;
-        }
-
-        let file_data = result.unwrap();
+        let file_data = read_file(filepath)?;
         let encodings = encoding::all::encodings();
         let trap = encoding::types::DecoderTrap::Strict;
         for en in encodings {
@@ -118,5 +110,6 @@ impl common::Command for DetectEncodingCmd {
                 }
             }
         }
+        Ok(())
     }
 }

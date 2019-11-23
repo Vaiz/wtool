@@ -1,8 +1,10 @@
+pub(crate) mod errors;
+
 pub trait Command {
     fn create() -> Box<Self> where Self: Sized;
     fn name() -> &'static str where Self: Sized;
     fn fill_subcommand<'a, 'b>(&self, app: clap::App<'a, 'b>) -> clap::App<'a, 'b>;
-    fn run(&self, args: Option<&clap::ArgMatches>);
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 pub struct Dispatcher {
@@ -28,8 +30,12 @@ impl Dispatcher {
         }
         app
     }
-    pub fn run(&self, cmd: &str, args: Option<&clap::ArgMatches>) {
-        let cmd = self.m_commands.get(cmd).unwrap();
-        cmd.run(args);
+    pub fn run(&self, cmd_name: &str, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
+        let cmd = self.m_commands.get(cmd_name);
+        if cmd.is_none() {
+            return Err(errors::ErrorString::new(format!("Command '{}' has not found. Use '--help' to print all commands", cmd_name)));
+        }
+
+        cmd.unwrap().run(args)
     }
 }

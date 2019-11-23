@@ -24,9 +24,9 @@ impl common::Command for FileSystemDispatcher {
         let fs_sub_cmd = self.m_disp.fill_subcommands(fs_sub_cmd);
         app.subcommand(fs_sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>) {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let (cmd_name, args) = args.unwrap().subcommand();
-        self.m_disp.run(cmd_name, args);
+        self.m_disp.run(cmd_name, args)
     }
 }
 
@@ -49,13 +49,13 @@ impl common::Command for ListDirCmd {
                         .required(true));
         app.subcommand(sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>) {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let args = args.unwrap();
         let path = args.value_of("path").unwrap();
-        let mut explorer = FileExplorer::create(path, false, false).unwrap();
+        let mut explorer = FileExplorer::create(path, false, false)?;
 
         while !explorer.eof() {
-            let file = explorer.next().unwrap();
+            let file = explorer.next()?;
             let filename = file.m_path.file_name().unwrap().to_str().unwrap();
             //let filename = file.m_path.to_str().unwrap();
             if file.m_meta.is_dir() {
@@ -64,6 +64,7 @@ impl common::Command for ListDirCmd {
                 println!("{}", filename);
             }
         }
+        Ok(())
     }
 }
 

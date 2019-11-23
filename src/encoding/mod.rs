@@ -38,34 +38,35 @@ impl common::Command for EncodingDispatcher {
         let fs_sub_cmd = self.m_disp.fill_subcommands(fs_sub_cmd);
         app.subcommand(fs_sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>) {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let (cmd_name, args) = args.unwrap().subcommand();
-        self.m_disp.run(cmd_name, args);
+        self.m_disp.run(cmd_name, args)
     }
 }
 
 pub struct ConvertCmd;
 
 impl ConvertCmd {
-    fn read_file(path: &str) -> Vec<u8> {
+    fn read_file(path: &str) -> std::io::Result<Vec<u8>> {
         let mut file = std::fs::OpenOptions::new()
             .read(true)
             .write(false)
             .create(false)
             .open(path).unwrap();
         let mut buf = Vec::<u8>::new();
-        file.read_to_end(&mut buf);
-        buf
+        file.read_to_end(&mut buf)?;
+        Ok(buf)
     }
-    fn write_file(path: &str, data: &Vec<u8>) {
+    fn write_file(path: &str, data: &Vec<u8>) -> std::io::Result<()> {
         let mut file = std::fs::OpenOptions::new()
             .read(false)
             .write(true)
             .create(true)
             .truncate(true)
             .open(path).unwrap();
-        file.write_all(&data[..]);
-        file.flush();
+        file.write_all(&data[..])?;
+        file.flush()?;
+        Ok(())
     }
     /*fn decode(data: &Vec<u8>) -> (Option<String>, encoding::types::EncodingRef) {
         let encodings = encoding::all::encodings();
@@ -84,24 +85,18 @@ impl ConvertCmd {
         tgt_path: &str,
         decoder_ref: EncodingRef,
         encoder_ref: EncodingRef,
-    ) {
-        let file_data = Self::read_file(src_path);
-        if file_data.is_empty() { return; }
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let file_data = Self::read_file(src_path).unwrap();
+        if file_data.is_empty() { return Ok(()); }
 
         //let (result, decoder_ref) = Self::decode(&file_data);
-        let result = decoder_ref.decode(&file_data[..], encoding::types::DecoderTrap::Strict);
-
-        if result.is_err() {
-            println!("Failed to decode file {}", src_path);
-            return;
-        }
-
-        let mut result = result.unwrap();
-        let result = encoder_ref.encode(result.as_str(), encoding::types::EncoderTrap::Strict);
-        Self::write_file(tgt_path, &result.unwrap());
+        let result = decoder_ref.decode(&file_data[..], encoding::types::DecoderTrap::Strict)?;
+        let result = encoder_ref.encode(result.as_str(), encoding::types::EncoderTrap::Strict)?;
+        Self::write_file(tgt_path, &result)?;
 
         println!("Converting complete. Source file: {}, Target file {}, Decoder: {}, Encoder: {}",
                  src_path, tgt_path, decoder_ref.name(), encoder_ref.name());
+        Ok(())
     }
     fn convert_folder(
         src_path: &str,
@@ -181,7 +176,7 @@ impl common::Command for ConvertCmd {
 
         app.subcommand(sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>) {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let args = args.unwrap();
         let src_path = args.value_of("path").unwrap();
         let tgt_path =
@@ -195,14 +190,15 @@ impl common::Command for ConvertCmd {
 
         if decoder == encoder {
             println!("Source and Target encoding are same");
-            return;
+            return Ok(());
         }
 
         println!("Source path: [{}], Target path: [{}], Decoder: [{}], Encoder: [{}]", src_path, tgt_path, decoder, encoder);
 
         if is_folder {
-            panic!("Folders not implemented");
-        } else { Self::convert_file(src_path, tgt_path, decoder_ref, encoder_ref); }
+            return Err(common::errors::ErrorStr::new("Folders not implemented"));
+        }
+        Self::convert_file(src_path, tgt_path, decoder_ref, encoder_ref)
     }
 }
 
@@ -217,11 +213,12 @@ impl common::Command for ListEncodings {
     fn fill_subcommand<'a, 'b>(&self, app: clap::App<'a, 'b>) -> clap::App<'a, 'b> {
         app.subcommand(clap::App::new(Self::name()))
     }
-    fn run(&self, args: Option<&clap::ArgMatches>) {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let encodings = encoding::all::encodings();
         for e in encodings {
             println!("{}", e.name());
         }
+        Ok(())
     }
 }
 
@@ -269,7 +266,7 @@ impl common::Command for ListFiles {
                         .required(false))
         )
     }
-    fn run(&self, args: Option<&clap::ArgMatches>) {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let mut cfg = ListFilesConfig::new();
 
         let args = args.unwrap();
@@ -284,6 +281,7 @@ impl common::Command for ListFiles {
         if mask.is_some() { cfg.set_regex(mask.unwrap()); }
 
         ListFiles::run(&cfg);
+        Ok(())
     }
 }
 

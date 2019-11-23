@@ -32,9 +32,9 @@ impl common::Command for PlotDispatcher {
         let fs_sub_cmd = self.m_disp.fill_subcommands(fs_sub_cmd);
         app.subcommand(fs_sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>) {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let (cmd_name, args) = args.unwrap().subcommand();
-        self.m_disp.run(cmd_name, args);
+        self.m_disp.run(cmd_name, args)
     }
 }
 
@@ -49,8 +49,7 @@ impl common::Command for ColoredxyExampleCmd {
         let sub_cmd = clap::App::new(Self::name());
         app.subcommand(sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>)
-    {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let x = linspace(0, 10, 100);
 
         let y_sin = x.iter().map(|x| x.sin()).collect();
@@ -68,6 +67,7 @@ impl common::Command for ColoredxyExampleCmd {
         let mut plt = Plotter::new();
         plt.plot2d(pb);
         plt.join();
+        Ok(())
     }
 }
 
@@ -102,8 +102,7 @@ impl common::Command for CubicFunctionCmd {
                     .takes_value(true));
         app.subcommand(sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>)
-    {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let args = args.unwrap();
         let x_min = args.value_of("x_min").unwrap().parse::<f64>().unwrap();
         let x_max = args.value_of("x_max").unwrap().parse::<f64>().unwrap();
@@ -143,5 +142,6 @@ impl common::Command for CubicFunctionCmd {
         let mut plt = Plotter::new();
         plt.plot2d(pb);
         plt.join();
+        Ok(())
     }
 }

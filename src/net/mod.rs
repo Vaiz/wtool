@@ -29,9 +29,9 @@ impl common::Command for NetDispatcher {
         let fs_sub_cmd = self.m_disp.fill_subcommands(fs_sub_cmd);
         app.subcommand(fs_sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>) {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let (cmd_name, args) = args.unwrap().subcommand();
-        self.m_disp.run(cmd_name, args);
+        self.m_disp.run(cmd_name, args)
     }
 }
 
@@ -50,7 +50,7 @@ impl common::Command for ListAllConnectionCmd {
                 .arg(clap::Arg::with_name("port").long("port").takes_value(true));
         app.subcommand(sub_cmd)
     }
-    fn run(&self, args: Option<&clap::ArgMatches>) {
+    fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
         let args = args.unwrap();
 
         let af_flags = ListAllConnectionCmd::get_ip_ver(args);
@@ -63,7 +63,7 @@ impl common::Command for ListAllConnectionCmd {
             };
 
 
-        let sockets_info = get_sockets_info(af_flags, proto_flags).unwrap();
+        let sockets_info = get_sockets_info(af_flags, proto_flags)?;
         for si in sockets_info {
             if !ListAllConnectionCmd::is_port_match(&si, &port) { continue; }
 
@@ -83,6 +83,7 @@ impl common::Command for ListAllConnectionCmd {
                 ),
             }
         }
+        Ok(())
     }
 }
 
