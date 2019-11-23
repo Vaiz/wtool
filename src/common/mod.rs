@@ -6,7 +6,7 @@ pub trait Command {
 }
 
 pub struct Dispatcher {
-    m_commands: std::collections::HashMap<&'static str, Box<Command>>,
+    m_commands: std::collections::HashMap<&'static str, Box<dyn Command>>,
 }
 
 impl Dispatcher {
