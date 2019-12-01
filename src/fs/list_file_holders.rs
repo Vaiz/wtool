@@ -1,6 +1,6 @@
 use clap;
 use winapi;
-use winapi::_core::ptr::{null, null_mut};
+use winapi::_core::ptr::null_mut;
 
 use crate::common;
 use crate::common::errors::ErrorString;
@@ -19,12 +19,6 @@ impl WCharString {
     fn from_str(s: &str) -> Self {
         Self { data: s.encode_utf16().collect() }
     }
-    fn from_string(s: &String) -> Self {
-        Self { data: s.encode_utf16().collect() }
-    }
-    fn as_ptr(&self) -> *const winapi::um::winnt::WCHAR {
-        self.data.as_ptr()
-    }
     fn as_mut_ptr(&mut self) -> *mut winapi::um::winnt::WCHAR {
         self.data.as_mut_ptr()
     }
@@ -33,6 +27,18 @@ impl WCharString {
     }
 }
 
+fn decode_utf16(v: &[winapi::um::winnt::WCHAR]) -> String {
+    let mut i = 0;
+    while (i < v.len()) {
+        if v[i] == 0 { break; }
+        i += 1;
+    }
+
+    let v = &v[0..i];
+    std::char::decode_utf16(v.iter().cloned())
+        .map(|r| r.unwrap_or('?'))
+        .collect::<String>()
+}
 
 pub(crate) struct ListFileHolders {}
 
@@ -46,15 +52,13 @@ impl common::Command for ListFileHolders {
         app.subcommand(sub_cmd)
     }
     fn run(&self, args: Option<&clap::ArgMatches>) -> Result<(), Box<dyn std::error::Error>> {
-        use winapi::um::errhandlingapi::GetLastError;
         use winapi::shared::minwindef::{DWORD, UINT};
-        use winapi::um::winnt::{WCHAR, LPCWSTR};
         use winapi::um::restartmanager::CCH_RM_SESSION_KEY;
         use winapi::shared::winerror::{ERROR_SUCCESS, ERROR_MORE_DATA};
 
         let args = args.unwrap();
         let filepath = args.value_of("file path").unwrap();
-        let mut filepath = WCharString::from_str(filepath);
+        let filepath = WCharString::from_str(filepath);
 
         let mut session_handle: DWORD = 0 as DWORD;
         let mut session_key = WCharString::new(CCH_RM_SESSION_KEY);
@@ -89,7 +93,7 @@ impl common::Command for ListFileHolders {
             let mut processes = Vec::<RM_PROCESS_INFO>::new();
             processes.resize(16, std::mem::MaybeUninit::uninit().assume_init());
 
-            while true {
+            loop {
                 let mut pn_proc_info = processes.len() as UINT;
                 let mut reason: DWORD = 0;
                 let result = RmGetList(
@@ -112,8 +116,10 @@ impl common::Command for ListFileHolders {
             }
 
             processes.resize(pn_proc_info_needed as usize, std::mem::MaybeUninit::uninit().assume_init());
+            println!("Holders count: {}", pn_proc_info_needed);
+            println!("{:>6}: {}", "PID", "Process name");
             for p in processes.iter() {
-                println!("PID: {}", p.Process.dwProcessId);
+                println!("{:>6}: {}", p.Process.dwProcessId, decode_utf16(&p.strAppName));
             }
 
             RmEndSession(session_handle);
