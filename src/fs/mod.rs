@@ -1,4 +1,7 @@
 use crate::common;
+use crate::fs::list_file_holders::ListFileHolders;
+
+mod list_file_holders;
 
 pub struct FileSystemDispatcher {
     m_disp: common::Dispatcher,
@@ -10,6 +13,7 @@ impl FileSystemDispatcher {
             m_disp: common::Dispatcher::new()
         };
         fs.m_disp.add_cmd::<ListDirCmd>();
+        fs.m_disp.add_cmd::<ListFileHolders>();
         fs
     }
 }

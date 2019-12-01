@@ -11,3 +11,7 @@ dataplotlib = "0.1.3"
 netstat = "0.7.0"
 walkdir = "2.2.8"
 regex = "1.1.7"
+
+[dependencies.winapi]
+version = "0.3"
+features = ["restartmanager"]
